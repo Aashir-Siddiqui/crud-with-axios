@@ -1,11 +1,18 @@
-import React, { useState } from 'react';
-import { postData } from '../api/PostApi';
+import React, { useEffect, useState } from 'react';
+import { postData, updateData } from '../api/PostApi';
 
-export default function Form({ posts, setPosts }) {
+export default function Form({ posts, setPosts, updatePost, setUpdatePost }) {
   const [addPost, setAddPost] = useState({
     title: '',
     body: '',
   });
+
+  useEffect(() => {
+    updatePost && setAddPost({
+      title: updatePost.title || "",
+      body: updatePost.body || ""
+    })
+  }, [updatePost])
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -37,9 +44,34 @@ export default function Form({ posts, setPosts }) {
     }
   };
 
+  const isEmpty = Object.keys(updatePost).length === 0
+
+  const updatePostData = async () => {
+    try {
+      const res = await updateData(updatePost.id, addPost)
+      console.log(res)
+      if (res.status === 200) {
+        setPosts((prev) => {
+          return prev.map((currElem) => {
+            return currElem.id === res.data.id ? res.data : currElem
+          })
+        })
+        setAddPost({ title: '', body: '' });
+        setUpdatePost({})
+      }
+    } catch (error) {
+      console.log(error)
+    }
+  }
+
   const handleForm = (e) => {
     e.preventDefault();
-    addPostData();
+    const action = e.nativeEvent.submitter.value
+    if (action === "Add") {
+      addPostData();
+    } else if (action === "Edit") {
+      updatePostData()
+    }
   };
 
   return (
@@ -80,8 +112,8 @@ export default function Form({ posts, setPosts }) {
       <button
         type="submit"
         className="w-full bg-zinc-900 text-white py-3 cursor-pointer rounded-md hover:bg-zinc-950 transition-colors duration-200 font-medium"
-      >
-        Submit
+        value={isEmpty ? "Add" : "Edit"}>
+        {isEmpty ? "Add" : "Edit"}
       </button>
     </form>
   );
